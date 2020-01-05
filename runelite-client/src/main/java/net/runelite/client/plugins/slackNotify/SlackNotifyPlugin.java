@@ -14,7 +14,6 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.NotificationSent;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.plugins.smelting.SmeltingConfig;
 
 import javax.inject.Inject;
 
@@ -46,8 +45,11 @@ public class SlackNotifyPlugin extends Plugin
                 .setTokenSupplier(() -> config.apiKey())
                 .build();
 
-        SlackClient slackClient = SlackClientFactory.defaultFactory().build(slackConfig);
-        messageChannel(config.slackChannel(), "Starting up");
+        this.slackClient = SlackClientFactory.defaultFactory().build(slackConfig);
+
+        if (!config.apiKey().isEmpty()) {
+            messageChannel(config.slackChannel(), "Starting up");
+        }
     }
 
     public ChatPostMessageResponse messageChannel(String channelToPostIn, String message) {
@@ -63,6 +65,8 @@ public class SlackNotifyPlugin extends Plugin
 
     @Subscribe
     public void onNotificationSent(NotificationSent notification) {
+        System.out.println("NOTIFICATION: " + notification.getMessage());
+
         messageChannel(config.slackChannel(), notification.getMessage());
     }
 }
