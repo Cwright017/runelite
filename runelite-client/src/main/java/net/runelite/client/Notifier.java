@@ -113,6 +113,8 @@ public class Notifier
 	private final boolean terminalNotifierAvailable;
 	private Instant flashStart;
 	private long mouseLastPressedMillis;
+
+	@Inject
 	private EventBus eventBus;
 
 	@Inject
@@ -129,12 +131,10 @@ public class Notifier
 		this.executorService = executorService;
 		this.chatMessageManager = chatMessageManager;
 		this.notifyIconPath = RuneLite.RUNELITE_DIR.toPath().resolve("icon.png");
-		this.eventBus = new EventBus();
 		// First check if we are running in launcher
 		this.terminalNotifierAvailable =
 			!Strings.isNullOrEmpty(RuneLiteProperties.getLauncherVersion())
 			&& isTerminalNotifierAvailable();
-
 		storeIcon();
 	}
 
