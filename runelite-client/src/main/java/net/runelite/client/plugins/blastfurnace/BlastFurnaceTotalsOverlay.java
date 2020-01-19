@@ -54,6 +54,7 @@ class BlastFurnaceTotalsOverlay extends Overlay
     private final BlastFurnacePlugin plugin;
     private final PanelComponent imagePanelComponent = new PanelComponent();
     private HashMap<Bars, Integer> barsMade = new HashMap<Bars, Integer>();
+    private HashMap<Bars, Integer> barsCost = new HashMap<Bars, Integer>();
     private boolean isBarsReady = false;
 
     @Inject
@@ -68,11 +69,43 @@ class BlastFurnaceTotalsOverlay extends Overlay
         setPosition(OverlayPosition.TOP_LEFT);
         imagePanelComponent.setOrientation(ComponentOrientation.HORIZONTAL);
         getMenuEntries().add(new OverlayMenuEntry(RUNELITE_OVERLAY_CONFIG, OPTION_CONFIGURE, "Blast furnace totals overlay"));
+        setupCosts();
+    }
+
+    private void setupCosts()
+    {
+        for (Bars varbit : Bars.values()) {
+            final int COAL_PRICE = itemManager.getItemPrice(BarsOres.COAL.getItemID());
+            int oreCost = itemManager.getItemPrice(varbit.getItemID());
+            int coalCost = 0;
+
+            switch (varbit) {
+                    case STEEL_BAR:
+                    coalCost = COAL_PRICE;
+                    break;
+
+                case MITHRIL_BAR:
+                    coalCost = 2 * COAL_PRICE;
+                    break;
+
+                case ADAMANTITE_BAR:
+                    coalCost = 3 * COAL_PRICE;
+                    break;
+
+                case RUNITE_BAR:
+                    coalCost = 4 * COAL_PRICE;
+                    break;
+            }
+
+            int totalCost = oreCost + coalCost;
+            barsCost.put(varbit, totalCost);
+        }
     }
 
     public void clearTotals()
     {
         barsMade.clear();
+        setupCosts();
     }
 
     @Override
