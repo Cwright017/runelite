@@ -56,7 +56,7 @@ class BlastFurnaceTotalsOverlay extends Overlay
     private HashMap<Bars, Integer> barsMade = new HashMap<Bars, Integer>();
     private HashMap<Bars, Integer> barsCost = new HashMap<Bars, Integer>();
     private boolean isBarsReady = false;
-
+    private boolean isCostsSetup = false;
     @Inject
     private ItemManager itemManager;
 
@@ -69,11 +69,14 @@ class BlastFurnaceTotalsOverlay extends Overlay
         setPosition(OverlayPosition.TOP_LEFT);
         imagePanelComponent.setOrientation(ComponentOrientation.HORIZONTAL);
         getMenuEntries().add(new OverlayMenuEntry(RUNELITE_OVERLAY_CONFIG, OPTION_CONFIGURE, "Blast furnace totals overlay"));
-        setupCosts();
     }
 
     private void setupCosts()
     {
+        if (isCostsSetup) {
+            return;
+        }
+
         for (Bars varbit : Bars.values()) {
             final int COAL_PRICE = itemManager.getItemPrice(BarsOres.COAL.getItemID());
             int oreCost = itemManager.getItemPrice(varbit.getItemID());
@@ -100,12 +103,13 @@ class BlastFurnaceTotalsOverlay extends Overlay
             int totalCost = oreCost + coalCost;
             barsCost.put(varbit, totalCost);
         }
+        isCostsSetup = true;
     }
 
     public void clearTotals()
     {
         barsMade.clear();
-        setupCosts();
+        isCostsSetup = false;
     }
 
     @Override
@@ -115,6 +119,8 @@ class BlastFurnaceTotalsOverlay extends Overlay
         {
             return null;
         }
+
+        this.setupCosts();
 
         int totalProfit = 0;
 
@@ -154,11 +160,13 @@ class BlastFurnaceTotalsOverlay extends Overlay
             isBarsReady = false;
         }
 
-        imagePanelComponent.getChildren().add(LineComponent.builder()
-                .left("     Profit: ")
-                .leftColor(Color.ORANGE)
-                .right(String.valueOf(totalProfit) + " gp")
-                .build());
+        if (totalProfit > 0) {
+            imagePanelComponent.getChildren().add(LineComponent.builder()
+                    .left("     Profit: ")
+                    .leftColor(Color.ORANGE)
+                    .right(String.valueOf(totalProfit) + " gp")
+                    .build());
+        }
 
         return imagePanelComponent.render(graphics);
     }
