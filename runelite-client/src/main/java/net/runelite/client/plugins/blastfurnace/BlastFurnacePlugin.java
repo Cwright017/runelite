@@ -26,6 +26,8 @@
 package net.runelite.client.plugins.blastfurnace;
 
 import com.google.inject.Provides;
+
+import java.awt.image.BufferedImage;
 import java.time.Duration;
 import java.time.Instant;
 import javax.inject.Inject;
@@ -37,10 +39,7 @@ import net.runelite.api.GameState;
 import static net.runelite.api.NullObjectID.NULL_9092;
 import static net.runelite.api.ObjectID.CONVEYOR_BELT;
 import net.runelite.api.Skill;
-import net.runelite.api.events.GameObjectDespawned;
-import net.runelite.api.events.GameObjectSpawned;
-import net.runelite.api.events.GameStateChanged;
-import net.runelite.api.events.GameTick;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.config.ConfigManager;
@@ -48,8 +47,11 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.ui.overlay.infobox.InfoBoxManager;
+import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.Text;
 
 @PluginDescriptor(
@@ -94,6 +96,11 @@ public class BlastFurnacePlugin extends Plugin
 	@Inject
 	private InfoBoxManager infoBoxManager;
 
+	@Inject
+	private ClientToolbar clientToolbar;
+
+	private NavigationButton navButton;
+
 	@Override
 	protected void startUp() throws Exception
 	{
@@ -101,6 +108,22 @@ public class BlastFurnacePlugin extends Plugin
 		overlayManager.add(cofferOverlay);
 		overlayManager.add(clickBoxOverlay);
 		overlayManager.add(totalsOverlay);
+
+		final BufferedImage icon = ImageUtil.getResourceStreamFromClass(getClass(), "/skill_icons/smithing.png");
+
+		navButton = NavigationButton.builder()
+				.tooltip("Blast Furnace Tracker")
+				.icon(icon)
+				.priority(2)
+				.onClick(this::handleClick)
+				.build();
+
+		clientToolbar.addNavigation(navButton);
+	}
+
+	private void handleClick()
+	{
+		totalsOverlay.clearTotals();
 	}
 
 	@Override
@@ -114,6 +137,8 @@ public class BlastFurnacePlugin extends Plugin
 		conveyorBelt = null;
 		barDispenser = null;
 		foremanTimer = null;
+
+		clientToolbar.removeNavigation(navButton);
 	}
 
 	@Provides

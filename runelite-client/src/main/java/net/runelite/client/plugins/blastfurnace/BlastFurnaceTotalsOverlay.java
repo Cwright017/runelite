@@ -24,8 +24,7 @@
  */
 package net.runelite.client.plugins.blastfurnace;
 
-import java.awt.Dimension;
-import java.awt.Graphics2D;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
@@ -33,6 +32,7 @@ import javax.inject.Inject;
 import net.runelite.api.Client;
 import static net.runelite.api.MenuAction.RUNELITE_OVERLAY_CONFIG;
 
+import net.runelite.api.Point;
 import net.runelite.api.Varbits;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.client.eventbus.Subscribe;
@@ -45,6 +45,7 @@ import net.runelite.client.ui.overlay.OverlayMenuEntry;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.ComponentOrientation;
 import net.runelite.client.ui.overlay.components.ImageComponent;
+import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.PanelComponent;
 
 class BlastFurnaceTotalsOverlay extends Overlay
@@ -54,6 +55,7 @@ class BlastFurnaceTotalsOverlay extends Overlay
     private final PanelComponent imagePanelComponent = new PanelComponent();
     private HashMap<Bars, Integer> barsMade = new HashMap<Bars, Integer>();
     private boolean isBarsReady = false;
+
     @Inject
     private ItemManager itemManager;
 
@@ -68,25 +70,9 @@ class BlastFurnaceTotalsOverlay extends Overlay
         getMenuEntries().add(new OverlayMenuEntry(RUNELITE_OVERLAY_CONFIG, OPTION_CONFIGURE, "Blast furnace totals overlay"));
     }
 
-    @Subscribe
-    public void onVarbitChanged(VarbitChanged event)
+    public void clearTotals()
     {
-        System.out.println("-----------------------> CHANGED " + event);
-        System.out.println("-----------------------> BARS: " + client.getVar(BAR_DISPENSER));
-
-        if (event.equals(BAR_DISPENSER)) {
-            System.out.println("ORE DISPENCER CHANGED ");
-
-        }
-
-        for (Bars varbit : Bars.values())
-        {
-            int amount = client.getVar(varbit.getVarbit());
-
-            // Update total
-            int totalMade = barsMade.getOrDefault(varbit, 0) + amount;
-            barsMade.put(varbit, totalMade);
-        }
+        barsMade.clear();
     }
 
     @Override
@@ -97,18 +83,16 @@ class BlastFurnaceTotalsOverlay extends Overlay
             return null;
         }
 
+        int totalProfit = 0;
+
         imagePanelComponent.getChildren().clear();
 
+        int barDispenser = client.getVar(BAR_DISPENSER);
 
-        int barDespencer = client.getVar(BAR_DISPENSER);
-        if(( barDespencer == 2 || barDespencer == 3 )&& !isBarsReady) {
-            isBarsReady = true;
+        for (Bars varbit : Bars.values()) {
+            int amount = client.getVar(varbit.getVarbit());
 
-            for (Bars varbit : Bars.values()) {
-                int amount = client.getVar(varbit.getVarbit());
-
-                System.out.println("BAR AMOUNT: " + amount);
-
+            if(( barDispenser == 2 || barDispenser == 3 ) && !isBarsReady) {
                 // Update total
                 int totalMade = barsMade.getOrDefault(varbit, 0) + amount;
                 barsMade.put(varbit, totalMade);
@@ -116,12 +100,32 @@ class BlastFurnaceTotalsOverlay extends Overlay
                 if (totalMade == 0) {
                     continue;
                 }
+            }
 
+            int itemPrice = itemManager.getItemPrice(varbit.getItemID());
+            int totalMade = barsMade.getOrDefault(varbit, 0);
+
+            int totalPrice = itemPrice * totalMade;
+            int totalCost = (itemManager.getItemPrice(BarsOres.COAL.getItemID()) * 2 + itemManager.getItemPrice(Bars.MITHRIL_BAR.getItemID())) * totalMade;
+
+            totalProfit += totalCost - totalPrice;
+
+            if (totalMade > 0) {
                 imagePanelComponent.getChildren().add(new ImageComponent(getImage(varbit.getItemID(), totalMade)));
             }
+        }
+
+        if (barDispenser == 2 || barDispenser == 3) {
+            isBarsReady = true;
         } else {
             isBarsReady = false;
         }
+
+        imagePanelComponent.getChildren().add(LineComponent.builder()
+                .left("     Profit: ")
+                .leftColor(Color.ORANGE)
+                .right(String.valueOf(totalProfit) + " gp")
+                .build());
 
         return imagePanelComponent.render(graphics);
     }
