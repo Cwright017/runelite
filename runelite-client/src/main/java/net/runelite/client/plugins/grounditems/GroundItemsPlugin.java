@@ -36,12 +36,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
@@ -63,7 +61,6 @@ import net.runelite.api.Tile;
 import net.runelite.api.TileItem;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.events.ClientTick;
-import net.runelite.client.events.ConfigChanged;
 import net.runelite.api.events.FocusChanged;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemDespawned;
@@ -74,6 +71,7 @@ import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.client.Notifier;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.events.NpcLootReceived;
 import net.runelite.client.events.PlayerLootReceived;
 import net.runelite.client.game.ItemManager;
@@ -166,8 +164,8 @@ public class GroundItemsPlugin extends Plugin
 	@Getter
 	private final Map<GroundItem.GroundItemKey, GroundItem> collectedGroundItems = new LinkedHashMap<>();
 	private final Map<Integer, Color> priceChecks = new LinkedHashMap<>();
-	private LoadingCache<String, Boolean> highlightedItems;
-	private LoadingCache<String, Boolean> hiddenItems;
+	private LoadingCache<NamedQuantity, Boolean> highlightedItems;
+	private LoadingCache<NamedQuantity, Boolean> hiddenItems;
 	private final Queue<Integer> droppedItemQueue = EvictingQueue.create(16); // recently dropped items
 
 	@Provides
@@ -235,7 +233,7 @@ public class GroundItemsPlugin extends Plugin
 		}
 
 		boolean shouldNotify = !config.onlyShowLoot() && config.highlightedColor().equals(getHighlighted(
-			groundItem.getName(),
+			new NamedQuantity(groundItem),
 			groundItem.getGePrice(),
 			groundItem.getHaPrice()));
 
@@ -363,7 +361,7 @@ public class GroundItemsPlugin extends Plugin
 				groundItem.setLootType(lootType);
 
 				boolean shouldNotify = config.onlyShowLoot() && config.highlightedColor().equals(getHighlighted(
-					groundItem.getName(),
+					new NamedQuantity(groundItem),
 					groundItem.getGePrice(),
 					groundItem.getHaPrice()));
 
@@ -433,6 +431,11 @@ public class GroundItemsPlugin extends Plugin
 		// Cache colors
 		priceChecks.clear();
 
+		if (config.getHighlightOverValue() > 0)
+		{
+			priceChecks.put(config.getHighlightOverValue(), config.highlightedColor());
+		}
+
 		if (config.insaneValuePrice() > 0)
 		{
 			priceChecks.put(config.insaneValuePrice(), config.insaneValueColor());
@@ -451,11 +454,6 @@ public class GroundItemsPlugin extends Plugin
 		if (config.lowValuePrice() > 0)
 		{
 			priceChecks.put(config.lowValuePrice(), config.lowValueColor());
-		}
-
-		if (config.getHighlightOverValue() > 0)
-		{
-			priceChecks.put(config.getHighlightOverValue(), config.highlightedColor());
 		}
 	}
 
@@ -502,8 +500,8 @@ public class GroundItemsPlugin extends Plugin
 			final int price = itemPrice <= 0 ? itemComposition.getPrice() : itemPrice;
 			final int haPrice = Math.round(itemComposition.getPrice() * Constants.HIGH_ALCHEMY_MULTIPLIER) * quantity;
 			final int gePrice = quantity * price;
-			final Color hidden = getHidden(itemComposition.getName(), gePrice, haPrice, itemComposition.isTradeable());
-			final Color highlighted = getHighlighted(itemComposition.getName(), gePrice, haPrice);
+			final Color hidden = getHidden(new NamedQuantity(itemComposition.getName(), quantity), gePrice, haPrice, itemComposition.isTradeable());
+			final Color highlighted = getHighlighted(new NamedQuantity(itemComposition.getName(), quantity), gePrice, haPrice);
 			final Color color = getItemColor(highlighted, hidden);
 			final boolean canBeRecolored = highlighted != null || (hidden != null && config.recolorMenuHiddenItems());
 
@@ -548,8 +546,8 @@ public class GroundItemsPlugin extends Plugin
 
 	void updateList(String item, boolean hiddenList)
 	{
-		final Set<String> hiddenItemSet = new HashSet<>(hiddenItemList);
-		final Set<String> highlightedItemSet = new HashSet<>(highlightedItemsList);
+		final List<String> hiddenItemSet = new ArrayList<>(hiddenItemList);
+		final List<String> highlightedItemSet = new ArrayList<>(highlightedItemsList);
 
 		if (hiddenList)
 		{
@@ -560,7 +558,7 @@ public class GroundItemsPlugin extends Plugin
 			hiddenItemSet.removeIf(item::equalsIgnoreCase);
 		}
 
-		final Set<String> items = hiddenList ? hiddenItemSet : highlightedItemSet;
+		final List<String> items = hiddenList ? hiddenItemSet : highlightedItemSet;
 
 		if (!items.removeIf(item::equalsIgnoreCase))
 		{
@@ -571,7 +569,7 @@ public class GroundItemsPlugin extends Plugin
 		config.setHighlightedItem(Text.toCSV(highlightedItemSet));
 	}
 
-	Color getHighlighted(String item, int gePrice, int haPrice)
+	Color getHighlighted(NamedQuantity item, int gePrice, int haPrice)
 	{
 		if (TRUE.equals(highlightedItems.getUnchecked(item)))
 		{
@@ -613,7 +611,7 @@ public class GroundItemsPlugin extends Plugin
 		return null;
 	}
 
-	Color getHidden(String item, int gePrice, int haPrice, boolean isTradeable)
+	Color getHidden(NamedQuantity item, int gePrice, int haPrice, boolean isTradeable)
 	{
 		final boolean isExplicitHidden = TRUE.equals(hiddenItems.getUnchecked(item));
 		final boolean isExplicitHighlight = TRUE.equals(highlightedItems.getUnchecked(item));

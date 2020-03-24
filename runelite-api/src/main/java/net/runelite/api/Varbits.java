@@ -458,7 +458,35 @@ public enum Varbits
 	 * The varbit that stores the oxygen percentage for player
 	 */
 	OXYGEN_LEVEL(5811),
-	
+
+	/**
+	 * Drift net status
+	 *
+	 * Expected values
+	 *  0 = Unset
+	 *  1 = Set up
+	 *  2 = Caught some fish
+	 *  3 = Full
+	 */
+	NORTH_NET_STATUS(5812),
+	SOUTH_NET_STATUS(5814),
+
+	/**
+	 * Drift net catch count
+	 */
+	NORTH_NET_CATCH_COUNT(5813),
+	SOUTH_NET_CATCH_COUNT(5815),
+
+	/**
+	 * Drift net collect interface
+	 *
+	 * Expected values:
+	 *  0 = Not open
+	 *  1 = North interface open
+	 *  2 = South interface open
+	 */
+	DRIFT_NET_COLLECT(5933),
+
 	/**
 	 * Corp beast damage
 	 */
@@ -470,6 +498,7 @@ public enum Varbits
 	SUPERIOR_ENABLED(5362),
 	FOSSIL_ISLAND_WYVERN_DISABLE(6251),
 
+	BANK_REARRANGE_MODE(3959),
 	CURRENT_BANK_TAB(4150),
 
 	WORLDHOPPER_FAVROITE_1(4597),
