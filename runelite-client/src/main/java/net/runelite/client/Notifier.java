@@ -117,9 +117,6 @@ public class Notifier
 	private long mouseLastPressedMillis;
 
 	@Inject
-	private EventBus eventBus;
-
-	@Inject
 	private Notifier(
 		final ClientUI clientUI,
 		final Client client,
